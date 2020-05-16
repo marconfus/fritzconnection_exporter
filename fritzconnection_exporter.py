@@ -30,7 +30,7 @@ def get_info():
     serial_number = device_info.get("NewSerialNumber")
     uptime = device_info.get("NewUpTime")
     info_metric = prometheus_client.Info(
-        'fritzconnection', 'Fritz!Box information', registry=registry)
+        'fritzconnection_box', 'Fritz!Box information', registry=registry)
     info_metric.info({"model": status.modelname, "software_version": software_version,
                       "device_description": description, "serial_number": serial_number})
     uptime_metric = prometheus_client.Gauge(
