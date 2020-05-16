@@ -3,6 +3,7 @@ import fritzconnection
 import time
 import os
 from fritzconnection.lib.fritzstatus import FritzStatus
+from prometheus_client.core import REGISTRY
 from pprint import pprint
 
 fc = None
@@ -18,7 +19,7 @@ def init_fritzconnection():
 
 def init_prometheus():
     global registry
-    registry = prometheus_client.CollectorRegistry()
+    registry = REGISTRY
 
 
 def get_info():
@@ -93,7 +94,8 @@ def get_lan_info():
 def main():
     init_fritzconnection()    
     init_prometheus()
-    prometheus_client.start_http_server(int(os.getenv("PROM_PORT", 9090)), registry=registry)
+    prometheus_client.start_http_server(int(os.getenv("PROM_PORT", 9090)))
+    # prometheus_client.start_http_server(int(os.getenv("PROM_PORT", 9090)), registry=registry)
 
     while True:
         get_info()
