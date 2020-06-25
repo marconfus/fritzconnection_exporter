@@ -5,6 +5,7 @@ import os
 from fritzconnection.lib.fritzstatus import FritzStatus
 from prometheus_client.core import REGISTRY
 from pprint import pprint
+from fritzstats import FritzStats
 
 fc = None
 registry = REGISTRY
@@ -33,6 +34,9 @@ lan_total_bytes_received_metric = prometheus_client.Gauge('fritzconnection_lan_t
 lan_total_bytes_sent_metric = prometheus_client.Gauge('fritzconnection_lan_total_bytes_sent',
                                                       "LAN total bytes received", registry=registry)
 
+cpu_temp_metric = prometheus_client.Gauge('fritzstats_cpu_temp', 'CPU temperature', registry=registry)
+cpu_util_metric = prometheus_client.Gauge('fritzstats_cpu_util', 'CPU utilization', registry=registry)
+mem_metric = prometheus_client.Gauge('fritzstats_mem', 'Memory usage', ['type'], registry=registry)
 
 def init_fritzconnection():
     global fc
@@ -107,18 +111,36 @@ def get_lan_info():
     # info = fc.call_action("WANIPConnection1", "GetInfo")
     # pprint(info)
 
+def init_fritz_stats():
+    addr = os.getenv("FB_ADDRESS", "192.168.0.1")
+    pw = os.getenv("FB_PASSWORD")
+    fs = FritzStats("", pw, f"http://{addr}")
+    return fs
+
+def get_fritz_stats():
+    fs = init_fritz_stats()
+    cpu_temp, cpu_util, mem_fixed, mem_dynamic, mem_free = fs.get_stats()
+    cpu_temp_metric.set(cpu_temp)
+    cpu_util_metric.set(cpu_util)
+    mem_metric.labels(type='fixed').set(mem_fixed)
+    mem_metric.labels(type='dynamic').set(mem_dynamic)
+    mem_metric.labels(type='free').set(mem_free)
 
 def main():
+    print("Initializing...")
     init_fritzconnection()
     init_prometheus()
+
     # prometheus_client.start_http_server(int(os.getenv("PROM_PORT", 9090)))
     prometheus_client.start_http_server(
         int(os.getenv("PROM_PORT", 9090)), registry=registry)
 
+    print("Entering loop...")
     while True:
         get_info()
         get_wan_info()
         get_lan_info()
+        get_fritz_stats()
         time.sleep(60)
 
     # print(prometheus_client.generate_latest(registry).decode())
